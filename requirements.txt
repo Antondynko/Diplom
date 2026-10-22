@@ -1,0 +1,4 @@
+numpy
+gurobipy
+ortools
+pytest
