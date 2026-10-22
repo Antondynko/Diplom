@@ -1,4 +1,4 @@
-"""Загрузка входных данных задачи размещения из текстового файла.
+"""Загрузка и генерация входных данных задачи размещения.
 
 Формат файла: 3 строки заголовка, затем по одной строке на пару
 (центр i, клиент j) с полями: ``i j c d`` — индексы, транспортные
@@ -7,6 +7,8 @@
 
 from dataclasses import dataclass
 from pathlib import Path
+
+import numpy as np
 
 
 @dataclass
@@ -45,5 +47,53 @@ def load_dataset(path: Path | str) -> Problem:
     for i, j, c_val, d_val in rows:
         c[i][j] = c_val
         d[i][j] = d_val
+
+    return Problem(n=n, m=m, c=c, d=d)
+
+
+def _normal_matrix(
+    n: int, m: int, low: float, high: float, rng: np.random.Generator
+) -> list[list[float]]:
+    """Матрица n×m из нормального распределения, обрезанная до [low, high]."""
+    mean = (low + high) / 2
+    std = (high - low) / 6
+    matrix = rng.normal(mean, std, (n, m))
+    return np.clip(matrix, low, high).tolist()
+
+
+def generate_dataset(
+    n: int,
+    m: int,
+    p: int,
+    c_low: float,
+    c_high: float,
+    d_low: float,
+    d_high: float,
+    path: Path | str,
+    seed: int | None = None,
+) -> Problem:
+    """Генерирует случайные c и d, записывает в файл формата n_m_p.txt.
+
+    :param n: количество центров
+    :param m: количество клиентов
+    :param p: количество выбранных центров (для имени файла и заголовка)
+    :param c_low, c_high: диапазон транспортных расходов
+    :param d_low, d_high: диапазон предпочтений клиентов
+    :param path: путь к файлу для записи
+    :param seed: seed для воспроизводимости (None = без фиксации)
+    :return: сгенерированный Problem
+    """
+    rng = np.random.default_rng(seed)
+    c = _normal_matrix(n, m, c_low, c_high, rng)
+    d = _normal_matrix(n, m, d_low, d_high, rng)
+
+    lines = [f"n = {n}, m = {m}                 {p}"]
+    lines.append("i  j  c  d")
+    for i in range(n):
+        for j in range(m):
+            lines.append(f"{i} {j} {c[i][j]:.4f} {d[i][j]:.4f}")
+
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    Path(path).write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     return Problem(n=n, m=m, c=c, d=d)

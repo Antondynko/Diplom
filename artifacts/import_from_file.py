@@ -14,7 +14,7 @@ d = [[0 for j in range(m)] for i in range(n)]
 
 string_array = []
 
-with open('datasets/30_30_15.txt', 'r') as file:
+with open('../datasets/30_30_15.txt', 'r') as file:
 
     k = 0
     for line in file:
